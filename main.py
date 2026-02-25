@@ -13,15 +13,24 @@ from pymobiledevice3.services.afc import AfcService
 from pymobiledevice3.services.diagnostics import DiagnosticsService
 
 
-SUPPORTED_DEVICES = {
-    'iPhone4,1',
-    'iPad2,1', 'iPad2,2', 'iPad2,3', 'iPad2,4',
-    'iPad2,5', 'iPad2,6', 'iPad2,7',
-    'iPad3,1', 'iPad3,2', 'iPad3,3',
-    'iPod5,1'
-}
+SUPPORTED = {
+    'iPhone4,1': {'9.3.5', '9.3.6'},
 
-SUPPORTED_VERSIONS = {'8.4.1', '9.3.5', '9.3.6'}
+    'iPad2,1': {'8.4.1', '9.3.5'},
+    'iPad2,2': {'9.3.5', '9.3.6'},
+    'iPad2,3': {'9.3.5', '9.3.6'},
+    'iPad2,4': {'8.4.1', '9.3.5'},
+
+    'iPad2,5': {'8.4.1', '9.3.5'},
+    'iPad2,6': {'9.3.5', '9.3.6'},
+    'iPad2,7': {'9.3.5', '9.3.6'},
+
+    'iPad3,1': {'8.4.1', '9.3.5'},
+    'iPad3,2': {'9.3.5', '9.3.6'},
+    'iPad3,3': {'9.3.5', '9.3.6'},
+
+    'iPod5,1': {'8.4.1', '9.3.5'}
+}
 
 # pyinstaller resource path fix
 def resource_path(name):
@@ -136,19 +145,16 @@ class MainWindow(QMainWindow):
             product = info.get('ProductType')
             version = info.get('ProductVersion')
 
-            if product not in SUPPORTED_DEVICES:
+            is_supported = SUPPORTED.get(product)
+
+            if not is_supported:
                 self._set_state(f'Unsupported Device: {product}', False)
                 return
 
-            if version not in SUPPORTED_VERSIONS:
-                self._set_state(f'Unsupported iOS version: {version}', False)
+            if version not in is_supported:
+                self._set_state(f'Unsupported {product} iOS version: {version}', False)
                 return
-            
-             # https://github.com/overcast302/A5_Bypass_OSS/issues/13
-            if version == '8.4.1' and info.get('TelephonyCapability'):
-                self._set_state(f'Unsupported Device({product}) iOS version: {version}', False)
-                return
-            
+
             self._set_state(f'Connected: {product} ({version})', True)
 
         except Exception:
