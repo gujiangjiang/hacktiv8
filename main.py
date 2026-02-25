@@ -34,10 +34,10 @@ class ActivationThread(QThread):
     success = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def wait_for_device(self, timeout=120):
-        start = time.monotonic()
+    def wait_for_device(self, timeout=160):
+        deadline = time.monotonic() + timeout
 
-        while time.monotonic() - start < timeout:
+        while time.monotonic() < deadline:
             try:
                 lockdown = create_using_usbmux()
                 DiagnosticsService(lockdown=lockdown).mobilegestalt(
@@ -51,10 +51,10 @@ class ActivationThread(QThread):
 
 
     def push_payload(self, lockdown, payload):
-        with AfcService(lockdown=lockdown) as afc, open(payload, 'rb') as f:
+        with AfcService(lockdown=lockdown) as afc, open(payload, 'rb') as payload_db:
             afc.set_file_contents(
                 'Downloads/downloads.28.sqlitedb',
-                f.read()
+                payload_db.read()
             )
 
         DiagnosticsService(lockdown=lockdown).restart()
@@ -105,7 +105,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle('A5 Bypass OSS v1.0.4')
+        self.setWindowTitle('A5 Bypass OSS v1.0.5')
         self.setFixedSize(500, 200)
 
         self.status = QLabel('No device connected')
