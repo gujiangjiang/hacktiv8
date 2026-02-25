@@ -81,6 +81,9 @@ class ActivationThread(QThread):
             for attempt in range(5):
                 lockdown = self.push_payload(lockdown, payload)
 
+                delay = 10 + attempt * 5
+                time.sleep(delay)
+
                 if self.should_hactivate(lockdown) is not False:
                     DiagnosticsService(lockdown=lockdown).restart()
                     self.success.emit('Done!')
