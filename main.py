@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
                 self._set_state(f'Unsupported iOS version: {version}', False)
                 return
             
-             # https://github.com/overcast302/A5_Bypass_OSS/issues/7
+             # https://github.com/overcast302/A5_Bypass_OSS/issues/13
             if version == '8.4.1' and info.get('TelephonyCapability'):
                 self._set_state(f'Unsupported Device({product}) iOS version: {version}', False)
                 return
