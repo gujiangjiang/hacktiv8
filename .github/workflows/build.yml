@@ -42,8 +42,8 @@ jobs:
       env:
         MACOSX_DEPLOYMENT_TARGET: "10.13"
       run: |
-        pyinstaller --noconfirm --onefile --windowed --name "${{ matrix.file_name }}" --add-data "payload${{ runner.os == 'Windows' && ';' || ':' }}." --hidden-import "pymobiledevice3" main.py
-
+        pyinstaller --noconfirm --onefile --windowed --name "${{ matrix.file_name }}" --add-data "payload.sql${{ matrix.sep }}." --hidden-import "pymobiledevice3" main.py
+        
     - name: Package macOS DMG
       if: runner.os == 'macOS'
       run: |

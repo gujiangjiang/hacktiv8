@@ -1,6 +1,8 @@
 import sys
 import os
 import time
+import sqlite3
+import tempfile
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -12,6 +14,7 @@ from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.services.afc import AfcService
 from pymobiledevice3.services.diagnostics import DiagnosticsService
 
+BACKEND_URL = 'http://overcast302.dev/a5bypassoss/server.php'
 
 SUPPORTED = {
     'iPhone4,1': {'9.3.5', '9.3.6'},
@@ -47,6 +50,25 @@ def resource_path(name):
     base = getattr(sys, '_MEIPASS', os.path.abspath('.'))
     return os.path.join(base, name)
 
+def build_db_from_sql(sql_path, backend_url, target_path):
+    with open(sql_path, 'r', encoding='utf-8') as f:
+        sql = f.read()
+
+    sql = sql.replace('BACKEND_URL', backend_url).replace('TARGET_PATH', target_path)
+
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp.close()
+
+    try:
+        con = sqlite3.connect(tmp.name)
+        con.executescript(sql)
+        con.commit()
+        con.close()
+
+        with open(tmp.name, 'rb') as f:
+            return f.read()
+    finally:
+        os.unlink(tmp.name)
 
 class ActivationThread(QThread):
     status = pyqtSignal(str)
@@ -68,16 +90,15 @@ class ActivationThread(QThread):
 
         raise TimeoutError()
 
+    def push_payload(self, lockdown, payload_db, delay=10):
+        with AfcService(lockdown=lockdown) as afc:
+            for filename in afc.listdir('Downloads'):
+                afc.rm('Downloads/' + filename)
+            time.sleep(3)
 
-    def push_payload(self, lockdown, payload, delay=10):
-        for filename in afc.listdir('Downloads'):
-            afc.rm('Downloads/' + filename)
-        time.sleep(3)
-
-        with AfcService(lockdown=lockdown) as afc, open(payload, 'rb') as payload_db:
             afc.set_file_contents(
                 'Downloads/downloads.28.sqlitedb',
-                payload_db.read()
+                payload_db
             )
         time.sleep(delay)
 
@@ -93,16 +114,22 @@ class ActivationThread(QThread):
     def run(self):
         try:
             lockdown = create_using_usbmux()
+            values = lockdown.get_value()
 
-            if lockdown.get_value(key='ActivationState') == 'Activated':
+            if values.get('ActivationState') == 'Activated':
                 self.success.emit('Device is already activated')
                 return
 
-            payload_database = resource_path('payload')
+            sql_path = resource_path('payload.sql')
+            if tuple(int(x) for x in values.get('ProductVersion').split('.')) >= (10, 3):
+                payload_db = build_db_from_sql(sql_path, BACKEND_URL, '/private/var/containers/Shared/SystemGroup/systemgroup.com.apple.mobilegestaltcache/Library/Caches/com.apple.MobileGestalt.plist')
+            else:
+                payload_db = build_db_from_sql(sql_path, BACKEND_URL, '/private/var/mobile/Library/Caches/com.apple.MobileGestalt.plist')
+
             self.status.emit('Activating device...')
 
             for attempt in range(5):
-                lockdown = self.push_payload(lockdown, payload_database, 10 + attempt * 5)
+                lockdown = self.push_payload(lockdown, payload_db, 10 + attempt * 5)
 
                 # delay = 10 + attempt * 5
                 # time.sleep(delay)
@@ -155,10 +182,10 @@ class MainWindow(QMainWindow):
     def poll_device(self):
         try:
             lockdown = create_using_usbmux()
-            info = lockdown.get_value()
+            values = lockdown.get_value()
 
-            product = info.get('ProductType')
-            version = info.get('ProductVersion')
+            product = values.get('ProductType')
+            version = values.get('ProductVersion')
 
             is_supported = SUPPORTED.get(product)
 
