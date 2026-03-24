@@ -69,12 +69,17 @@ class ActivationThread(QThread):
         raise TimeoutError()
 
 
-    def push_payload(self, lockdown, payload):
+    def push_payload(self, lockdown, payload, delay=10):
+        for filename in afc.listdir('Downloads'):
+            afc.rm('Downloads/' + filename)
+        time.sleep(3)
+
         with AfcService(lockdown=lockdown) as afc, open(payload, 'rb') as payload_db:
             afc.set_file_contents(
                 'Downloads/downloads.28.sqlitedb',
                 payload_db.read()
             )
+        time.sleep(delay)
 
         DiagnosticsService(lockdown=lockdown).restart()
         return self.wait_for_device()
@@ -93,14 +98,14 @@ class ActivationThread(QThread):
                 self.success.emit('Device is already activated')
                 return
 
-            payload = resource_path('payload')
+            payload_database = resource_path('payload')
             self.status.emit('Activating device...')
 
             for attempt in range(5):
-                lockdown = self.push_payload(lockdown, payload)
+                lockdown = self.push_payload(lockdown, payload_database, 10 + attempt * 5)
 
-                delay = 10 + attempt * 5
-                time.sleep(delay)
+                # delay = 10 + attempt * 5
+                # time.sleep(delay)
 
                 if self.should_hactivate(lockdown):
                     DiagnosticsService(lockdown=lockdown).restart()
