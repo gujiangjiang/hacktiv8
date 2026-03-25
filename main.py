@@ -15,7 +15,7 @@ from pymobiledevice3.services.afc import AfcService
 from pymobiledevice3.services.diagnostics import DiagnosticsService
 
 
-BACKEND_URL = 'http://overcast302.dev/a5bypassoss/server.php'
+BACKEND_URL = 'http://overcast302.dev/hacktiv8/server.php'
 
 SUPPORTED = {
     'iPhone4,1': {'9.3.5', '9.3.6'},
