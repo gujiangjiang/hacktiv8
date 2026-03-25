@@ -1,4 +1,4 @@
-name: Build A5 Bypass OSS
+name: Build hacktiv8
 
 on:
   push:
@@ -15,13 +15,13 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            file_name: "a5_bypass_oss_windows"
+            file_name: "hacktiv8_windows"
           - os: ubuntu-latest
-            file_name: "a5_bypass_oss_linux"
+            file_name: "hacktiv8_linux"
           - os: macos-latest
-            file_name: "a5_bypass_oss_macos_arm64"
+            file_name: "hacktiv8_macos_arm64"
           - os: macos-15-intel
-            file_name: "a5_bypass_oss_macos_intel"
+            file_name: "hacktiv8_macos_intel"
 
     steps:
     - uses: actions/checkout@v4
@@ -43,14 +43,14 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET: "10.13"
       run: |
         pyinstaller --noconfirm --onefile --windowed --name "${{ matrix.file_name }}" --add-data "payload.sql${{ matrix.sep }}." --hidden-import "pymobiledevice3" main.py
-        
+
     - name: Package macOS DMG
       if: runner.os == 'macOS'
       run: |
         cd dist
         plutil -replace LSMinimumSystemVersion -string "10.13" "${{ matrix.file_name }}.app/Contents/Info.plist"
         codesign --force --deep --sign - "${{ matrix.file_name }}.app"
-        create-dmg --volname "A5 Bypass OSS" --window-pos 200 120 --window-size 600 300 --icon-size 100 --text-size 12 --hide-extension "${{ matrix.file_name }}.app" --app-drop-link 450 140 --icon "${{ matrix.file_name }}.app" 150 140 "${{ matrix.file_name }}.dmg" "${{ matrix.file_name }}.app"
+        create-dmg --volname "hacktiv8" --window-pos 200 120 --window-size 600 300 --icon-size 100 --text-size 12 --hide-extension "${{ matrix.file_name }}.app" --app-drop-link 450 140 --icon "${{ matrix.file_name }}.app" 150 140 "${{ matrix.file_name }}.dmg" "${{ matrix.file_name }}.app"
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4

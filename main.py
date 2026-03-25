@@ -14,6 +14,7 @@ from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.services.afc import AfcService
 from pymobiledevice3.services.diagnostics import DiagnosticsService
 
+
 BACKEND_URL = 'http://overcast302.dev/a5bypassoss/server.php'
 
 SUPPORTED = {
@@ -90,7 +91,7 @@ class ActivationThread(QThread):
 
         raise TimeoutError()
 
-    def push_payload(self, lockdown, payload_db, delay=10):
+    def push_payload(self, lockdown, payload_db):
         with AfcService(lockdown=lockdown) as afc:
             for filename in afc.listdir('Downloads'):
                 afc.rm('Downloads/' + filename)
@@ -100,8 +101,6 @@ class ActivationThread(QThread):
                 'Downloads/downloads.28.sqlitedb',
                 payload_db
             )
-        time.sleep(delay)
-
         DiagnosticsService(lockdown=lockdown).restart()
         return self.wait_for_device()
 
@@ -129,10 +128,10 @@ class ActivationThread(QThread):
             self.status.emit('Activating device...')
 
             for attempt in range(5):
-                lockdown = self.push_payload(lockdown, payload_db, 10 + attempt * 5)
+                lockdown = self.push_payload(lockdown, payload_db)
 
-                # delay = 10 + attempt * 5
-                # time.sleep(delay)
+                delay = 15 + attempt * 5
+                time.sleep(delay)
 
                 if self.should_hactivate(lockdown):
                     DiagnosticsService(lockdown=lockdown).restart()
@@ -151,14 +150,14 @@ class ActivationThread(QThread):
                 'Device did not reconnect in time. Please ensure it is connected and try again.'
             )
         except Exception as e:
-            self.error.emit(str(e))
+            self.error.emit(repr(e))
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle('A5 Bypass OSS v1.1.0')
+        self.setWindowTitle('hacktiv8 v1.1.0')
         self.setFixedSize(500, 200)
 
         self.status = QLabel('No device connected')
