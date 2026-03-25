@@ -1,7 +1,6 @@
-# hacktiv8
-<sub>(formerly A5_Bypass_OSS)</sub>
+# hacktiv8 
 
-hacktiv8 is an open-source research project focused on analyzing and experimenting with iOS activation proccess using itunesstored sandbox escape vulnerability. It provides a one-click cross-platform solution for bypassing Activation Lock on legacy iOS devices without the need of pwning.
+hacktiv8(formerly A5_Bypass_OSS) is an open-source research project focused on analyzing and experimenting with iOS activation proccess using itunesstored sandbox escape vulnerability. It provides a one-click cross-platform solution for bypassing activation on legacy iOS devices without the need of pwning.
 
 ## Disclaimer
 
@@ -20,7 +19,7 @@ The tool is compatible with all A5 and A6 devices running **iOS 10.3.4**, **iOS 
 
 ## Backend Configuration
 
-The backend URL is stored in the `BACKEND_URL` global constant of [`main.py`](https://github.com/overcast302/A5_Bypass_OSS/blob/main/main.py)
+The backend URL is stored in the `BACKEND_URL` global constant of [`main.py`](https://github.com/overcast302/hacktiv8/blob/main/main.py#L18)
 
 Due to legacy iOS devices lacking trust for modern certificate authorities, the backend must either use HTTP, or serve an SSL certificate that chains to a root CA trusted by legacy iOS. Modern certificate authorities such as Let's Encrypt are not trusted on legacy iOS versions and will cause HTTPS connections to fail on target devices.
 
