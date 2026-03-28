@@ -3,6 +3,9 @@ import os
 import time
 import sqlite3
 import tempfile
+import http.server
+import threading
+import re
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -14,8 +17,6 @@ from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.services.afc import AfcService
 from pymobiledevice3.services.diagnostics import DiagnosticsService
 
-
-BACKEND_URL = 'http://overcast302.dev/hacktiv8/server.php'
 
 SUPPORTED = {
     'iPhone4,1': {'9.3.5', '9.3.6'},
@@ -50,6 +51,67 @@ SUPPORTED = {
 def resource_path(name):
     base = getattr(sys, '_MEIPASS', os.path.abspath('.'))
     return os.path.join(base, name)
+
+# --- Local Backend Server Implementation ---
+class LocalBackendHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        # Extract User-Agent from headers
+        user_agent = self.headers.get('User-Agent', '')
+        
+        # Parse model and build from User-Agent using regex
+        model_match = re.search(r'model/([a-zA-Z0-9,]+)', user_agent)
+        build_match = re.search(r'build/([a-zA-Z0-9]+)', user_agent)
+
+        if model_match and build_match:
+            model = model_match.group(1)
+            build = build_match.group(1)
+
+            # Prevent directory traversal attacks
+            if '..' in model or '..' in build:
+                self.send_response(403)
+                self.end_headers()
+                return
+
+            # Construct the local file path for patched.plist
+            base_dir = resource_path(os.path.join('backend', 'plists'))
+            file_path = os.path.join(base_dir, model, build, 'patched.plist')
+
+            # Serve the file if it exists
+            if os.path.exists(file_path):
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/xml')
+                self.send_header('Content-Disposition', 'attachment; filename="patched.plist"')
+                self.send_header('Content-Length', str(os.path.getsize(file_path)))
+                self.end_headers()
+                
+                with open(file_path, 'rb') as f:
+                    self.wfile.write(f.read())
+                return
+
+        # Return 403 Forbidden if parsing fails or file doesn't exist
+        self.send_response(403)
+        self.send_header('Content-Type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'Forbidden')
+
+    def log_message(self, format, *args):
+        # Suppress logging to keep the console output clean
+        pass
+
+def start_local_server():
+    # Bind to port 0 to allow the OS to assign an available free port automatically
+    httpd = http.server.HTTPServer(("127.0.0.1", 0), LocalBackendHandler)
+    port = httpd.server_address[1]
+    
+    # Run the server in a daemon thread so it closes when the main app exits
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    
+    return f"http://127.0.0.1:{port}"
+
+# Initialize the local server and dynamically set the BACKEND_URL
+BACKEND_URL = start_local_server()
+# -------------------------------------------
 
 def build_db_from_sql(sql_path, backend_url, target_path):
     with open(sql_path, 'r', encoding='utf-8') as f:
