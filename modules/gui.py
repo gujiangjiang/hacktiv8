@@ -17,11 +17,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hacktiv8 v2.0.0')
         self.setFixedSize(500, 200)
 
+        # Added a label to display the local server URL/IP
+        self.server_info = QLabel(f'Local Server: {self.backend_url}')
+        
         self.status = QLabel('No device connected')
         self.activate = QPushButton('Activate Device')
         self.activate.setEnabled(False)
 
         layout = QVBoxLayout()
+        # Add the server info label to the top of the layout
+        layout.addWidget(self.server_info)
         layout.addWidget(self.status)
         layout.addWidget(self.activate)
 
