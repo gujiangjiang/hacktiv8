@@ -6,6 +6,7 @@ import tempfile
 import http.server
 import threading
 import re
+import socket
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -98,16 +99,32 @@ class LocalBackendHandler(http.server.BaseHTTPRequestHandler):
         # Suppress logging to keep the console output clean
         pass
 
+# Function to automatically get the current machine's local IP address
+def get_local_ip():
+    try:
+        # Create a dummy socket to determine the preferred routing IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        # Fallback to localhost if network is unreachable
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    return ip
+
 def start_local_server():
-    # Bind to port 0 to allow the OS to assign an available free port automatically
-    httpd = http.server.HTTPServer(("127.0.0.1", 0), LocalBackendHandler)
+    local_ip = get_local_ip()
+    # Bind to 0.0.0.0 to allow access from the iOS device over Wi-Fi
+    httpd = http.server.HTTPServer(("0.0.0.0", 0), LocalBackendHandler)
     port = httpd.server_address[1]
     
     # Run the server in a daemon thread so it closes when the main app exits
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     
-    return f"http://127.0.0.1:{port}"
+    # Return the dynamically generated URL with the real local IP
+    return f"http://{local_ip}:{port}"
 
 # Initialize the local server and dynamically set the BACKEND_URL
 BACKEND_URL = start_local_server()
